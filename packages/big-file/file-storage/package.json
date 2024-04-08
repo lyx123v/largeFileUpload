@@ -1,0 +1,30 @@
+{
+  "name": "@big-file/file-storage",
+  "version": "0.0.1",
+  "description": "file storage implements",
+  "license": "ISC",
+  "author": "vanchen",
+  "maintainers": [],
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -b tsconfig.build.json",
+    "dev": "node -r sucrase/register src/index.ts",
+    "lint": "eslint ./src --cache",
+    "test": "vitest --run --passWithNoTests",
+    "test:cov": "npm run test -- --coverage"
+  },
+  "dependencies": {
+    "@devil-arch/logger": "workspace:*"
+  },
+  "devDependencies": {
+    "@devil-infra/eslint-config": "workspace:*",
+    "@devil-infra/ts-config": "workspace:*",
+    "@types/node": "^18",
+    "@vitest/coverage-v8": "^0.32.0",
+    "eslint": "^8.54.0",
+    "sucrase": "^3.32.0",
+    "typescript": "~5.0.4",
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^0.34.6"
+  }
+}

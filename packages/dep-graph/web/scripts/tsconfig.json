@@ -1,0 +1,8 @@
+{
+  "extends": "@devil-infra/ts-config/tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": "../",
+    "types": ["node"]
+  },
+  "include": ["./*.ts", "../src/types/*"]
+}

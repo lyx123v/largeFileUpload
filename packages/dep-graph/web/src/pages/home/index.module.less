@@ -1,0 +1,19 @@
+.container {
+}
+
+.toolbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--semi-color-bg-3);
+  border-bottom: 1px solid var(--semi-color-border);
+  z-index: 99;
+  padding: 0.8em 1.2em;
+
+  :global {
+    .semi-select-option-list>div {
+      will-change: unset !important; // 由于 react-window自带样式是内联的，所以这里用 important 覆盖
+    }
+  }
+}

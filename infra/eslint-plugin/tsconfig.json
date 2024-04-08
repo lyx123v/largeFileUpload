@@ -1,0 +1,10 @@
+{
+  "extends": "@devil-infra/ts-config/tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noImplicitAny": false,
+    "sourceMap": false
+  },
+  "include": ["src"]
+}

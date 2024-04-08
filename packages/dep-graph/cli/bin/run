@@ -1,0 +1,5 @@
+require('sucrase/register/ts');
+
+const { main } = require('../src/index');
+
+main();

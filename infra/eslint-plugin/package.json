@@ -1,0 +1,40 @@
+{
+  "name": "@devil-infra/eslint-plugin",
+  "version": "1.0.0",
+  "description": "eslint plugin for llm course project",
+  "license": "ISC",
+  "author": "vanchen",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "tsc -b --force",
+    "dev": "npm run build -- -w",
+    "lint": "eslint ./src --cache",
+    "test": "exit 0",
+    "test:cov": "exit 0"
+  },
+  "dependencies": {
+    "semver": "^7.3.7"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "~7.19.1",
+    "@babel/eslint-plugin": "^7.22.10",
+    "@devil-infra/ts-config": "workspace:*",
+    "@types/eslint": "^8",
+    "@types/estree": "^1.0.1",
+    "@types/node": "^18",
+    "@types/semver": "^7.3.4",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitest/coverage-v8": "^0.32.0",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-prettier": "^4",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-unicorn": "48.0.1",
+    "ts-node": "^10.9.1",
+    "typescript": "~5.0.4",
+    "vitest": "^0.34.6"
+  }
+}

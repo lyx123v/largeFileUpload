@@ -1,0 +1,57 @@
+{
+  "name": "@demo/dep-graph-web",
+  "version": "0.0.1",
+  "description": "graph web",
+  "license": "ISC",
+  "author": "vanchen",
+  "maintainers": [],
+  "sideEffects": false,
+  "exports": {
+    "./bootstrap": "./scripts/bootstrap.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "bootstrap": [
+        "./scripts/bootstrap.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "exit 0",
+    "lint": "eslint ./src --cache",
+    "test": "vitest --run --passWithNoTests",
+    "test:cov": "npm run test -- --coverage"
+  },
+  "dependencies": {
+    "@antv/g6": "^4.8.24",
+    "@demo/dep-graph-core": "workspace:*",
+    "antd": "^5.14.2",
+    "lodash-es": "^4.17.21",
+    "query-string": "^8.1.0",
+    "react": "~18.2.0",
+    "react-dom": "~18.2.0",
+    "react-error-boundary": "^4.0.9",
+    "react-router-dom": "^6.11.1",
+    "zustand": "^4.4.7"
+  },
+  "devDependencies": {
+    "@devil-infra/eslint-config": "workspace:*",
+    "@devil-infra/ts-config": "workspace:*",
+    "@rsbuild/core": "^0.2.18",
+    "@rsbuild/plugin-react": "^0.2.18",
+    "@types/node": "^18",
+    "@types/react": "^18.2.36",
+    "@types/react-dom": "^18.2.7",
+    "@vitest/coverage-v8": "^0.32.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.54.0",
+    "get-port": "^5.1.1",
+    "postcss": "^8.4.32",
+    "postcss-loader": "^7.3.3",
+    "sucrase": "^3.32.0",
+    "tailwindcss": "~3.3.3",
+    "typescript": "~5.0.4",
+    "vite-tsconfig-paths": "^4.2.1",
+    "vitest": "^0.34.6"
+  }
+}
