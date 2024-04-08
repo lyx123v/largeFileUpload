@@ -54,7 +54,7 @@ export const deleteFile = async (params: DeleteFileControllerParams) => {
 export const uploadChunk = async (
   params: SaveChunkControllerParams & { cancelToken?: CancelTokenSource },
 ) => {
-  const { chunk, hash, index } = params;
+  const { chunk, hash, index, cancelToken } = params;
   const formData = new FormData();
   // 准备上传的文件块数据
   formData.append('hash', hash);
@@ -64,6 +64,9 @@ export const uploadChunk = async (
   const res = await instance.post<SaveChunkControllerReponse>(
     API_CHUNK,
     formData,
+    {
+      cancelToken: cancelToken?.token,
+    },
   );
   return res.data.data;
 };

@@ -2,9 +2,7 @@
   <div class="upload-container">
     <div class="wrap">
       <input type="file" hidden ref="file" @change="handleFileChange" multiple class="ipt" />
-      <el-button type="warning" size="small" @click="() => {
-        console.log(file.click());
-      }">上传文件
+      <el-button type="warning" size="small" @click="() => file.click()">上传文件
       </el-button>
       <el-table :data="fileChunksArray" empty-text="无文件">
         <el-table-column prop="fileName" label="文件名"></el-table-column>
@@ -23,9 +21,9 @@
             <el-tag v-else-if="row.status === 'stop'" type="warning">暂停上传</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="percentage" width="0">
+        <el-table-column prop="percentage" label="上传进度">
           <template #default="{ row }">
-            {{ row.percentage > 100 ? 100 : row.percentage }}
+            <el-progress width="50" type="circle" :percentage="parseFloat(row.percentage).toFixed(2)" />
           </template>
         </el-table-column>
         <el-table-column label="操作">
@@ -47,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import axios from 'axios';
 import { deleteFile, findFile } from '../api/upload';
 import { calHash } from '../utils/hash';
@@ -59,7 +57,7 @@ const CancelToken = axios.CancelToken; // 作废方法
 const fileArray = ref<Array<File> | null>(null); // 文件
 const fileChunksArray = ref<FilePieceArray[]>([]); // 文件切片
 
-const file = ref(null); // 文件上传
+const file = ref<HTMLInputElement>(); // 文件上传
 
 // 获取文件
 function handleFileChange(e: any) {
@@ -120,27 +118,34 @@ async function uploadFile(row: FilePieceArray) {
     },
   }).then(() => {
     row.status = 'success';
-  }).catch(() => {
-    row.status = 'error';
+  }).catch((e) => {
+    console.log(e);
+    // if(e.message === '终止上传！') {
+    //   row.status = 'stop';
+    // } else {
+    //   row.status = 'error';
+    // }
   });
 }
 
 // 暂停或继续上传
 async function handlePause(row: FilePieceArray) {
   row.status = row.status === 'uploading' ? 'stop' : 'uploading'; // 暂停/继续变更状态
-  if (row.status === 'uploading') { // 暂停
-    row.cancelToken.cancel('终止上传！');
-    row.cancelToken = CancelToken.source();
-  } else if (row.status === 'stop') {
+  if (row.status === 'uploading') {
     // 继续上传chuang
     await uploadChunks({
       pieces: row.pieces, // 文件切片数组
       hash: row.hash, // 文件hash
-      cancelToken: row.cancelToken, // 取消/暂停 上传
+      // cancelToken: row.cancelToken, // 取消/暂停 上传
+      cancelToken: row.cancelToken,
       onTick: percentage => { // 更新进度
         row.percentage = percentage;
       },
     });
+  } else if (row.status === 'stop') {
+    // 暂停
+    row.cancelToken.cancel('终止上传！');
+    row.cancelToken = CancelToken.source();
   }
 }
 
