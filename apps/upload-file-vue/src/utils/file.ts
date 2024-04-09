@@ -7,10 +7,10 @@ export interface FilePieceArray {
   pieces: FilePiece[]; // 文件分块信息数组
   fileName: string; // 文件名
   percentage: number;
-  fileData: File;
+  fileData: File | null;
   hash: string; // 文件hash值
   onTick?: (progress: number) => void; // 上传进度回调函数
-  cancelToken: CancelTokenSource; // 取消上传的取消令牌
+  cancelToken?: CancelTokenSource; // 取消上传的取消令牌
   // 上传状态
   status:
     | 'resolving' // 解析中

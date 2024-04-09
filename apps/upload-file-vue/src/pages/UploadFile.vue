@@ -23,7 +23,8 @@
         </el-table-column>
         <el-table-column prop="percentage" label="上传进度">
           <template #default="{ row }">
-            <el-progress width="50" type="circle" :percentage="parseFloat(row.percentage).toFixed(2)" />
+            <el-progress width="50" type="circle"
+              :percentage="row.status === 'success' ? 100 : parseFloat(row.percentage).toFixed(2)" />
           </template>
         </el-table-column>
         <el-table-column label="操作">
@@ -49,16 +50,30 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { deleteFile, findFile } from '../api/upload';
 import { calHash } from '../utils/hash';
-import { type FilePieceArray, splitFile, uploadChunks } from '../utils/file';
+import IndexDB from '../utils/storage';
+import { type FilePieceArray, splitFile, uploadChunks, FilePiece } from '../utils/file';
 import prettysize from 'prettysize';
-
 const CancelToken = axios.CancelToken; // 作废方法
-// let source = CancelToken.source(); // 作废状态
 const fileArray = ref<Array<File> | null>(null); // 文件
 const fileChunksArray = ref<FilePieceArray[]>([]); // 文件切片
 
 const file = ref<HTMLInputElement>(); // 文件上传
-
+// 加载数据
+const loadData = async () => {
+  const data: any = await IndexDB.get('fileChunksArray');
+  if (data) {
+    fileChunksArray.value = data.content.map((item: any) => {
+      return {
+        ...item,
+        onTick: percentage => { // 更新进度
+          item.percentage = percentage;
+        },
+        cancelToken: CancelToken.source(),
+      };
+    });
+  }
+};
+loadData();
 // 获取文件
 function handleFileChange(e: any) {
   fileArray.value = e.target.files; // 获取文件数组
@@ -100,7 +115,8 @@ async function pretreatmentFile() {
         } else {
           fileChunksArray.value[piecesLen].status = 'waiting';
         }
-      });
+        saveIndexDB();
+      })
     });
   }
 }
@@ -112,12 +128,18 @@ async function uploadFile(row: FilePieceArray) {
   await uploadChunks({
     pieces: row.pieces, // 文件切片数组
     hash: row.hash, // 文件hash
-    cancelToken: row.cancelToken, // 取消/暂停 上传
+    cancelToken: row.cancelToken!, // 取消/暂停 上传
     onTick: percentage => { // 更新进度
       row.percentage = percentage;
     },
   }).then(() => {
+    // 上传成功，将该文件状态改为成功，并执行清除方法去除文件等操作清空内存
     row.status = 'success';
+    row.percentage = 100;
+    row.cancelToken = undefined;
+    row.onTick = undefined;
+    row.pieces = [];
+    row.fileData = null;
   }).catch((e) => {
     console.log(e);
     // if(e.message === '终止上传！') {
@@ -125,6 +147,8 @@ async function uploadFile(row: FilePieceArray) {
     // } else {
     //   row.status = 'error';
     // }
+  }).finally(() => {
+    saveIndexDB();
   });
 }
 
@@ -137,14 +161,14 @@ async function handlePause(row: FilePieceArray) {
       pieces: row.pieces, // 文件切片数组
       hash: row.hash, // 文件hash
       // cancelToken: row.cancelToken, // 取消/暂停 上传
-      cancelToken: row.cancelToken,
+      cancelToken: row.cancelToken!,
       onTick: percentage => { // 更新进度
         row.percentage = percentage;
       },
     });
   } else if (row.status === 'stop') {
     // 暂停
-    row.cancelToken.cancel('终止上传！');
+    row.cancelToken!.cancel('终止上传！');
     row.cancelToken = CancelToken.source();
   }
 }
@@ -157,12 +181,30 @@ async function delFile(row: FilePieceArray) {
     await deleteFile({ hash: row.hash })
   }
   fileChunksArray.value.splice(index, 1);
+  saveIndexDB();
 }
 
 // 获取文件大小，格式化
 const fileSize = (file: File) => {
   return prettysize(file.size);
 };
+
+const saveIndexDB = async () => {
+  IndexDB.add('fileChunksArray', fileChunksArray.value.map(item => {
+    return {
+      ...item,
+      onTick: null,
+      cancelToken: null,
+      pieces: item.pieces.map((e: any) => {
+        return {
+          chunk: e.chunk,
+          size: e.size,
+        }
+      })
+    };
+  }));
+};
+
 </script>
 
 <style lang="css">

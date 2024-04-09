@@ -9,3 +9,5 @@ export const API_FIND_FILE = '/api/file/check'; // 查找文件
 export const API_FIND_DELETE = '/api/file/delete'; // 删除文件
 export const API_CHUNK = '/api/chunk'; // 分片上传
 export const API_MERGE_FILE = '/api/file/merge'; // 合并文件
+export const SQL_NAME = 'FileDB'; // 数据库名称
+export const DB_NAME = 'FileTable'; // 数据库表名称
