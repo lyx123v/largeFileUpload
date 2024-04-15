@@ -30,6 +30,9 @@ importers:
       koa-router:
         specifier: ^12.0.1
         version: 12.0.1
+      koa-websocket:
+        specifier: ^7.0.0
+        version: 7.0.0
       supertest:
         specifier: ^6.3.4
         version: 6.3.4
@@ -49,6 +52,9 @@ importers:
       '@types/koa-pino-logger':
         specifier: ^3.0.4
         version: 3.0.4
+      '@types/koa-websocket':
+        specifier: ^5.0.10
+        version: 5.0.10
       '@types/koa__router':
         specifier: ^12.0.4
         version: 12.0.4
@@ -3936,6 +3942,14 @@ packages:
       '@types/pino-http': 5.8.4
     dev: true
 
+  /@types/koa-websocket@5.0.10:
+    resolution: {integrity: sha512-yaqbFuyrw4eFchCHdOiyF1uhSe0nRv6xFAvVlxoG8Fq2/h+0IDjka3DyN2hJt29m6jr3+nlgsPTGh/Hd/tZmIg==}
+    dependencies:
+      '@types/koa': 2.14.0
+      '@types/koa-compose': 3.2.8
+      '@types/ws': 8.5.10
+    dev: true
+
   /@types/koa@2.14.0:
     resolution: {integrity: sha512-DTDUyznHGNHAl+wd1n0z1jxNajduyTh8R53xoewuerdBzGo6Ogj6F2299BFtrexJw4NtgjsI5SMPCmV9gZwGXA==}
     dependencies:
@@ -4105,6 +4119,12 @@ packages:
   /@types/wrap-ansi@3.0.0:
     resolution: {integrity: sha512-ltIpx+kM7g/MLRZfkbL7EsCEjfzCcScLpkg37eXEtx5kmrAKBkTJwd1GIAjDSL8wTpM6Hzn5YO4pSb91BEwu1g==}
     dev: false
+
+  /@types/ws@8.5.10:
+    resolution: {integrity: sha512-vmQSUcfalpIq0R9q7uTo2lXs6eGIpt9wtnLdMv9LVpIjCA/+ufZRozlVoVelIYixx1ugCBKDhn89vnsEGOCx9A==}
+    dependencies:
+      '@types/node': 18.19.17
+    dev: true
 
   /@typescript-eslint/eslint-plugin@5.38.1(@typescript-eslint/parser@5.38.1)(eslint@8.56.0)(typescript@5.0.4):
     resolution: {integrity: sha512-ky7EFzPhqz3XlhS7vPOoMDaQnQMn+9o5ICR9CPr/6bw8HrFkzhMSxuA3gRfiJVvs7geYrSeawGJjZoZQKCOglQ==}
@@ -7697,6 +7717,19 @@ packages:
       - supports-color
     dev: false
 
+  /koa-websocket@7.0.0:
+    resolution: {integrity: sha512-MsHUFKqA4+j+0dpPKWtsvZfnpQ1NcgF+AaTZQZ4B3Xj/cWK31qqmKx9HnA5Gw1LV2aIDzqwy0IDBsZYRurTUAg==}
+    dependencies:
+      co: 4.6.0
+      debug: 4.3.4
+      koa-compose: 4.1.0
+      ws: 8.16.0
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    dev: false
+
   /koa@2.15.0:
     resolution: {integrity: sha512-KEL/vU1knsoUvfP4MC4/GthpQrY/p6dzwaaGI6Rt4NQuFqkw3qrvsdYF5pz3wOfi7IGTvMPHC9aZIcUKYFNxsw==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
@@ -11134,6 +11167,19 @@ packages:
     dependencies:
       imurmurhash: 0.1.4
       signal-exit: 4.1.0
+    dev: false
+
+  /ws@8.16.0:
+    resolution: {integrity: sha512-HS0c//TP7Ina87TfiPUz1rQzMhHrl/SG2guqRcTOIUYD2q8uhUdNHZYJUaQ8aTGPzCh+c6oawMKW35nFl1dxyQ==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
     dev: false
 
   /xml-name-validator@4.0.0:

@@ -11,6 +11,7 @@ export interface FilePieceArray {
   hash: string; // 文件hash值
   onTick?: (progress: number) => void; // 上传进度回调函数
   cancelToken?: CancelTokenSource; // 取消上传的取消令牌
+  fileSize?: number; // 文件大小
   // 上传状态
   status:
     | 'resolving' // 解析中
@@ -25,6 +26,7 @@ export interface FilePieceArray {
 export interface FilePiece {
   chunk: Blob; // 当前分片的内容
   size: number; // 当前分片的大小
+  isUploaded?: boolean; // 当前分片是否已上传
 }
 
 /**
@@ -43,6 +45,7 @@ export const splitFile = (file: File, chunkSize = CHUNK_SIZE) => {
       // 将当前块信息添加到列表中
       chunk: piece,
       size: piece.size,
+      isUploaded: false,
     });
     cur += chunkSize; // 更新当前处理位置
   }

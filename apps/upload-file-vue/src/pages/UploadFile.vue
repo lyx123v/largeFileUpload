@@ -8,7 +8,7 @@
         <el-table-column prop="fileName" label="文件名"></el-table-column>
         <el-table-column label="文件大小">
           <template #default="{ row }">
-            {{ fileSize(row.fileData) }}
+            {{ row.fileSize }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态">
@@ -46,16 +46,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import axios from 'axios';
+import { onMounted, ref } from 'vue';
+import axios, { CancelTokenSource } from 'axios';
 import { deleteFile, findFile } from '../api/upload';
 import { calHash } from '../utils/hash';
 import IndexDB from '../utils/storage';
-import { type FilePieceArray, splitFile, uploadChunks, FilePiece } from '../utils/file';
+import { FilePiece, type FilePieceArray, splitFile, uploadChunks } from '../utils/file';
 import prettysize from 'prettysize';
 const CancelToken = axios.CancelToken; // 作废方法
 const fileArray = ref<Array<File> | null>(null); // 文件
 const fileChunksArray = ref<FilePieceArray[]>([]); // 文件切片
+const ws = ref<WebSocket>(); // 文件切片
 
 const file = ref<HTMLInputElement>(); // 文件上传
 // 加载数据
@@ -66,11 +67,29 @@ const loadData = async () => {
       return {
         ...item,
         onTick: percentage => { // 更新进度
-          item.percentage = percentage;
+          if (item.percentage < percentage) {
+            item.percentage = percentage;
+          }
         },
         cancelToken: CancelToken.source(),
       };
     });
+
+    const hashArray = fileChunksArray.value.map((item: any) => item.hash)
+    // 批量验证
+    Promise.all(hashArray.map((hash) => findFile({ hash }))).then((res) => {
+      res.forEach((item, index) => {
+        if (item.exists) {
+          fileChunksArray.value[index].status = 'success';
+          fileChunksArray.value[index].percentage = 100;
+        }
+      });
+    });
+    // 无意义 暂未想到引入websocket收益较大的更新方案
+    // ws.value?.send(JSON.stringify({
+    //   type: 'init',
+    //   data: fileChunksArray.value.map((item: any) => item.hash)
+    // }));
   }
 };
 loadData();
@@ -91,7 +110,7 @@ async function pretreatmentFile() {
   // 文件数组为空直接弹出
   if (!len) return;
   // 获取已切片的文件数组
-  const source = CancelToken.source();
+  const source: CancelTokenSource = CancelToken.source();
   for (let i = 0; i < len; i++) {
     const fileData = fileArray.value![i];
     const pieces = splitFile(fileData)
@@ -103,11 +122,13 @@ async function pretreatmentFile() {
       percentage: 0, // 进度
       status: 'resolving', // 上传状态
       cancelToken: source,
+      fileSize: fileSize(fileData),
     });
     // 判断文件状态
     const piecesLen = fileChunksArray.value.length - 1;
     calHash({ chunks: pieces }).then(hash => {
       fileChunksArray.value[piecesLen].hash = hash;
+      // 判断文件是否已经上传
       findFile({ hash }).then(({ exists }) => {
         if (exists) {
           fileChunksArray.value[piecesLen].status = 'success';
@@ -130,7 +151,9 @@ async function uploadFile(row: FilePieceArray) {
     hash: row.hash, // 文件hash
     cancelToken: row.cancelToken!, // 取消/暂停 上传
     onTick: percentage => { // 更新进度
-      row.percentage = percentage;
+      if (row.percentage < percentage) {
+        row.percentage = percentage;
+      }
     },
   }).then(() => {
     // 上传成功，将该文件状态改为成功，并执行清除方法去除文件等操作清空内存
@@ -158,19 +181,22 @@ async function handlePause(row: FilePieceArray) {
   if (row.status === 'uploading') {
     // 继续上传chuang
     await uploadChunks({
-      pieces: row.pieces, // 文件切片数组
+      pieces: row.pieces.filter((e: FilePiece) => !e.isUploaded), // 文件切片数组
       hash: row.hash, // 文件hash
       // cancelToken: row.cancelToken, // 取消/暂停 上传
       cancelToken: row.cancelToken!,
       onTick: percentage => { // 更新进度
-        row.percentage = percentage;
+        if (row.percentage < percentage) {
+          row.percentage = percentage;
+        }
       },
     });
   } else if (row.status === 'stop') {
     // 暂停
     row.cancelToken!.cancel('终止上传！');
-    row.cancelToken = CancelToken.source();
+    row.cancelToken = CancelToken.source(); // 重新生成取消方法
   }
+  saveIndexDB();
 }
 
 // 删除文件
@@ -184,18 +210,26 @@ async function delFile(row: FilePieceArray) {
   saveIndexDB();
 }
 
+onMounted(() => {
+  // 连接websocket
+  setTimeout(() => {
+    connectWebSocket();
+  }, 1000);
+})
+
 // 获取文件大小，格式化
 const fileSize = (file: File) => {
   return prettysize(file.size);
 };
 
+// 保存到IndexDB
 const saveIndexDB = async () => {
   IndexDB.add('fileChunksArray', fileChunksArray.value.map(item => {
     return {
       ...item,
       onTick: null,
       cancelToken: null,
-      pieces: item.pieces.map((e: any) => {
+      pieces: item.pieces.filter((e) => !e.isUploaded).map((e: any) => {
         return {
           chunk: e.chunk,
           size: e.size,
@@ -203,6 +237,28 @@ const saveIndexDB = async () => {
       })
     };
   }));
+};
+
+const WebSocketIsOpne = ref(false);
+// 连接websocket
+const connectWebSocket = () => {
+  if (WebSocketIsOpne.value) return;
+  ws.value = new WebSocket('ws://localhost:3000/websocket/001');
+  ws.value.onopen = () => {
+    console.log('连接成功');
+    WebSocketIsOpne.value = true;
+  };
+  ws.value.onmessage = (e) => {
+    console.log(e.data);
+  };
+  ws.value.onclose = () => {
+    console.log('连接关闭');
+    WebSocketIsOpne.value = false;
+  };
+  ws.value.onerror = () => {
+    console.log('连接失败');
+    WebSocketIsOpne.value = false;
+  };
 };
 
 </script>

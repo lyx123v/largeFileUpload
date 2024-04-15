@@ -8,6 +8,7 @@ import {
   API_CHUNK,
   API_MERGE_FILE,
   API_FIND_DELETE,
+  API_WEB_SOCKET_MERGE_SYNC,
 } from '../const';
 // 上传切片执行方法
 import { saveChunkController } from './save-file';
@@ -15,6 +16,8 @@ import { saveChunkController } from './save-file';
 import { findFileController } from './find';
 // 合并文件执行方法
 import { deleteFileController, mergeChunksController } from './merge';
+import KoaWebsocket from 'koa-websocket';
+// 同步文件执行方法
 
 export const defineRoutes = (app: Koa) => {
   const router = new Router();
@@ -39,4 +42,28 @@ export const defineRoutes = (app: Koa) => {
   // 2白话文翻译：如果项目中存在get请求，而我们使用post请求，则会提示我们请求方法
   // 2还有一个好处就是请求不存在的接口，本来也该返回404，加了后返回405
   app.use(router.routes()).use(router.allowedMethods());
+};
+
+export const defineWebSocketRoutes = (app: KoaWebsocket.App) => {
+  const router = new Router();
+
+  // 同步文件
+  router.all('/websocket/:id', async ctx => {
+    // 通过ctx.params.id获取到前端传过来的id
+    const ID = ctx.params.id;
+    // ctx.websocket.send(msg); // 发送消息
+    ctx.websocket.on('message', msg => {
+      const data = msg.toString();
+      console.log(`前端${ID}发过来的数据：`, data);
+      // const parseData = JSON.parse(data);
+      // if (parseData.type === 'init') {
+      //   parseData.data.forEach(e => findFileController(e));
+      // }
+    });
+    ctx.websocket.on('close', () => {
+      console.log(`前端${ID}关闭了websocket`);
+    });
+  });
+
+  app.ws.use(router.routes());
 };
