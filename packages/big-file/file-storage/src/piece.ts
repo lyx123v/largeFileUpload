@@ -89,16 +89,22 @@ export class FilePieceService {
   }
 
   /**
+   * 检查指定片段下所有的文件
+   * @returns 返回文件数组
+   */
+  async ls() {
+    const fn2idx = (filename: string) => path.basename(filename);
+    // 获取哈希值对应的目录下的所有文件
+    const pieces = await this._storage.ls(this.hashDir);
+    return pieces.map(fn2idx);
+  }
+  /**
    * 合并所有片段为一个文件
    * @returns 合并后的文件信息，包含片段数量和文件哈希值
    * @throws 如果找不到任何片段或合并过程中发生错误，抛出异常
    */
-  async merge() {
-    logger.debug(`Start merge ${this.hash}`);
-    // TODO: 有几个遗留可优化的点：
-    // 1. 合并文件后，应该择机删除 chunks，以防浪费存储空间（OK）
-    // 2. 应该计算合并后的文件 hash 值与合并前的值，以防内容被篡改
-
+  async merge(name?: string) {
+    console.log(`Start merge ${this.hash}`);
     // 从存储中列出指定哈希目录下的所有文件
     const pieces = await this._storage.ls(this.hashDir);
     // 定义一个函数，用于从文件名中提取序号（假定文件名以数字结尾）
@@ -113,10 +119,8 @@ export class FilePieceService {
     if (sortedPieces.length <= 0) {
       throw new Error(`Can not found any pieces of ${this.hash} `);
     }
-    logger.debug(`Found ${sortedPieces.length} pieces of ${this.hash}`);
-
     // 组合排序后的文件片段到一个指定的文件中
-    const filename = path.resolve(this.hashDir, COMBIND_FILE_NAME);
+    const filename = path.resolve(this.hashDir, name || COMBIND_FILE_NAME);
     await this._storage.combind(sortedPieces, filename);
     // 删除 chunks
     for (let i = 0; i < sortedPieces.length; i++) {
@@ -130,14 +134,18 @@ export class FilePieceService {
    * 删除指定哈希值的所有文件
    * @returns 删除结果
    */
-  async delete() {
+  async delete(name?: string) {
     const { _storage } = this;
     // 删除合并后的文件与文件夹
     try {
-      await _storage.unlink(path.resolve(this.hashDir, COMBIND_FILE_NAME));
+      if (name) {
+        await _storage.unlink(path.resolve(this.hashDir, name)); // 删除默认文件名
+      } else {
+        await _storage.unlink(path.resolve(this.hashDir, COMBIND_FILE_NAME)); // 删除默认文件名
+      }
       await _storage.rmdir(path.resolve(this.hashDir)); // 删除哈希目录
     } catch (error) {
-      logger.error(`Delete ${this.hash} error: ${error}`);
+      console.log(`Delete ${this.hash} error: ${error}`);
     }
     return true;
   }

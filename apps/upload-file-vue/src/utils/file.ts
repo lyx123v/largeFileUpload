@@ -1,6 +1,6 @@
 import { CHUNK_SIZE, MAX_REQUESTS } from '../const';
 
-import { findFile, uploadChunk, mergeFile } from '../api/upload';
+import { findFile, uploadChunk, mergeFile, findChunk } from '../api/upload';
 import { type CancelTokenSource } from 'axios';
 
 export interface FilePieceArray {
@@ -11,7 +11,7 @@ export interface FilePieceArray {
   hash: string; // 文件hash值
   onTick?: (progress: number) => void; // 上传进度回调函数
   cancelToken?: CancelTokenSource; // 取消上传的取消令牌
-  fileSize?: number; // 文件大小
+  fileSize?: string | number; // 文件大小
   // 上传状态
   status:
     | 'resolving' // 解析中
@@ -64,17 +64,33 @@ export const uploadChunks = async (params: {
   hash: string; // 文件hash值
   onTick?: (progress: number) => void; // 上传进度回调函数
   cancelToken: CancelTokenSource; // 取消上传的取消令牌
+  name: string; // 文件名称
+  isAgain?: boolean; // 是否为重试上传
 }) => {
-  const { pieces: originChunks, hash, onTick, cancelToken } = params;
+  const {
+    pieces: originChunks,
+    hash,
+    onTick,
+    isAgain,
+    name,
+    cancelToken,
+  } = params;
   const paralleSize = MAX_REQUESTS; // 最大并发上传请求数量
   const total = originChunks.length; // 总分块数
 
+  let hashList: string[] = [];
+  if (isAgain) {
+    // 查询已上传文件块
+    await findChunk({ hash }).then(async res => {
+      hashList = res.hashList.map(item => `${item}`);
+    });
+  }
   // 递归执行上传逻辑，处理未上传成功的分块。
   const doUpload = async (pieces: FilePiece[]) => {
     // 剩余切片长度等于0
     if (pieces.length === 0) {
       // 所有分块上传完成，合并文件。
-      mergeFile({ hash });
+      mergeFile({ hash, name });
       console.log('上传完成');
       onTick?.(100); // 进度100
     }
@@ -83,13 +99,24 @@ export const uploadChunks = async (params: {
     const failList: FilePiece[] = []; // 上传失败的分块列表
     // 循环遍历分块列表。
     for (let i = 0; i < pieces.length; i++) {
-      const piece = pieces[i]; // 当前分块
+      const piece: FilePiece = pieces[i]; // 当前分块
       const params = { hash, chunk: piece.chunk, index: i };
-      // 自执行函数: 查找分块是否已存在，不存在则上传。
       const task = (async () => {
-        const { exists } = await findFile({ hash, index: i });
-        if (!exists) {
+        // 是否需要上传
+        let findFileRequest = true;
+        // 如果当前分块被本地标注已上传，直接跳过。
+        if (piece.isUploaded) {
+          findFileRequest = false;
+        }
+        // 如果当前分块被云端标注已上传，直接跳过。
+        if (isAgain && hashList.includes(`${i}`)) {
+          findFileRequest = false;
+        }
+        // 判断是否需要上传
+        if (findFileRequest) {
           return await uploadChunk({ ...params, cancelToken });
+        } else {
+          return Promise.resolve();
         }
       })();
       // 处理任务结果。
@@ -97,12 +124,14 @@ export const uploadChunks = async (params: {
         .then(res => {
           // console.log(res);
           finish++;
-          // 通过对比内存地址找到当前任务在池中的位置
+          // 通过对比方法的内存地址找到当前任务在池中的位置
           const j = pool.findIndex(t => t === task);
           // 去除当前任务，避免重复执行。
           pool.splice(j);
           // 更新上传进度。
           onTick?.((finish / total) * 100);
+          // 标记当前分块已上传。
+          piece.isUploaded = true;
         })
         .catch(err => {
           // console.log(err);

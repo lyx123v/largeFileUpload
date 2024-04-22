@@ -9,11 +9,12 @@ import {
   API_MERGE_FILE,
   API_FIND_DELETE,
   API_WEB_SOCKET_MERGE_SYNC,
+  API_FIND_CHUNK,
 } from '../const';
 // 上传切片执行方法
 import { saveChunkController } from './save-file';
 // 查询文件执行方法
-import { findFileController } from './find';
+import { findChunkController, findFileController } from './find';
 // 合并文件执行方法
 import { deleteFileController, mergeChunksController } from './merge';
 import KoaWebsocket from 'koa-websocket';
@@ -36,6 +37,8 @@ export const defineRoutes = (app: Koa) => {
   router.post(API_MERGE_FILE, koaBody(), mergeChunksController);
   // 删除文件
   router.delete(API_FIND_DELETE, deleteFileController);
+  // 查询已上传切片
+  router.get(API_FIND_CHUNK, findChunkController);
 
   // 1.将路由定义中间件挂载到应用程序上，它会处理所有的HTTP请求方法。
   // 2.将路由中间件和允许的方法中间件挂载到应用程序上，以实现HTTP请求的处理和方法允许的控制。

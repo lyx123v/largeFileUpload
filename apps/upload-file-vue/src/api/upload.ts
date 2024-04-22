@@ -2,6 +2,7 @@ import axios, { type CancelTokenSource } from 'axios';
 import type {
   DeleteFileControllerParams,
   FindFileControllerParams,
+  FindFileControllerParamsResponse,
   FindFileControllerResponse,
   MergeChunksControllerParams,
   MergeChunksControllerResponse,
@@ -13,6 +14,7 @@ import {
   API_CHUNK,
   API_MERGE_FILE,
   API_FIND_DELETE,
+  API_FIND_CHUNK,
 } from '@demo/upload-file/const';
 
 const instance = axios.create({
@@ -80,6 +82,21 @@ export const mergeFile = async (params: MergeChunksControllerParams) => {
   const res = await instance.post<MergeChunksControllerResponse>(
     API_MERGE_FILE,
     params,
+  );
+  return res.data.data;
+};
+
+/**
+ * 查找全部文件块。
+ * @param params 包含合并文件块所需参数的对象。
+ * @returns 文件块的名称数组
+ */
+export const findChunk = async (params: FindFileControllerParams) => {
+  const res = await instance.get<FindFileControllerParamsResponse>(
+    API_FIND_CHUNK,
+    {
+      params,
+    },
   );
   return res.data.data;
 };

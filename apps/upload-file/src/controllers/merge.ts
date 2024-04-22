@@ -36,12 +36,12 @@ const doMerge = async (
   params: MergeChunksControllerParams,
   storageRoot: string,
 ) => {
-  const { hash } = params;
+  const { hash, name } = params;
   const pieceService = new FilePieceService({ hash: hash!, storageRoot });
   if (!(await pieceService.hasContent())) {
     throw new HttpError(500, `Hash file not exists`);
   }
-  const res = await pieceService.merge();
+  const res = await pieceService.merge(name);
   return res;
 };
 
@@ -55,9 +55,9 @@ const delFile = async (
   params: DeleteFileControllerParams,
   storageRoot: string,
 ) => {
-  const { hash } = params;
+  const { hash, name } = params;
   const pieceService = new FilePieceService({ hash: hash!, storageRoot });
-  const res = await pieceService.delete();
+  const res = await pieceService.delete(name);
   return res;
 };
 
@@ -67,9 +67,10 @@ const delFile = async (
  * @returns 返回合并结果的响应体
  */
 export const mergeChunksController = async (ctx: Context) => {
-  const { hash } = ctx.request.body;
+  const { hash, name } = ctx.request.body;
   const params = {
     hash,
+    name,
   } as MergeChunksControllerParams;
   // 验证参数
   checkParams(params);
@@ -87,9 +88,10 @@ export const mergeChunksController = async (ctx: Context) => {
  * @returns 返回true/false
  */
 export const deleteFileController = async (ctx: Context) => {
-  const { hash } = ctx.request.query;
+  const { hash, name } = ctx.request.query;
   const params = {
     hash,
+    name,
   } as DeleteFileControllerParams;
   const { fileStorageRoot } = ctx.readConfig();
   const res = await delFile(params, fileStorageRoot);

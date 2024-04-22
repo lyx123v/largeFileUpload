@@ -1,4 +1,5 @@
-// ?worker是一个查询参数，告诉编译器将该文件编译为Web Worker。这样，在运行时，该模块将作为一个独立的线程运行，可以执行计算密集型任务，而不阻塞主线程。
+// TODO: ?worker是一个查询参数，告诉编译器将该文件编译为Web Worker。这样，在运行时，
+// TODO: 该模块将作为一个独立的线程运行，可以执行计算密集型任务，而不阻塞主线程。
 import Worker from './hash-worker.ts?worker';
 
 /**

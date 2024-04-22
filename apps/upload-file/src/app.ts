@@ -32,7 +32,7 @@ export const bootstrap = (
   // 定义非webSocket应用的路由
   defineRoutes(app);
   // 定义webSocket应用的路由
-  defineWebSocketRoutes(app);
+  // defineWebSocketRoutes(app);
 
   // 返回一个新的Promise，用于启动应用并监听指定端口。
   return new Promise((resolve, reject) => {

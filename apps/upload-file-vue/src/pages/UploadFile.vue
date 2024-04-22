@@ -2,7 +2,9 @@
   <div class="upload-container">
     <div class="wrap">
       <input type="file" hidden ref="file" @change="handleFileChange" multiple class="ipt" />
-      <el-button type="warning" size="small" @click="() => file.click()">上传文件
+      <el-button type="primary" size="small" @click="() => file.click()">上传文件
+      </el-button>
+      <el-button type="primary" size="small" @click="upLoadeAll">一键上传全部文件
       </el-button>
       <el-table :data="fileChunksArray" empty-text="无文件">
         <el-table-column prop="fileName" label="文件名"></el-table-column>
@@ -23,8 +25,8 @@
         </el-table-column>
         <el-table-column prop="percentage" label="上传进度">
           <template #default="{ row }">
-            <el-progress width="50" type="circle"
-              :percentage="row.status === 'success' ? 100 : parseFloat(row.percentage).toFixed(2)" />
+            <el-progress :width="50" type="circle"
+              :percentage="row.status === 'success' ? 100 : row.percentage.toFixed(2)" />
           </template>
         </el-table-column>
         <el-table-column label="操作">
@@ -33,9 +35,9 @@
               <el-button type="text" size="small" @click="delFile(row)">删除</el-button>
               <el-button v-if="row.status == 'waiting'" type="primary" size="small"
                 @click="uploadFile(row)">上传</el-button>
-              <el-button v-if="row.status == 'uploading' || row.status == 'stop'" type="warning" size="small"
-                @click="handlePause(row)">{{
-        row.status == 'uploading' ? '暂停' : row.status == 'stop' ? '继续' : ''
+              <el-button v-if="row.status == 'uploading' || row.status == 'stop' || row.status == 'error'"
+                type="warning" size="small" @click="handlePause(row)">{{
+        row.status == 'uploading' ? '暂停' : (row.status == 'stop' || row.status == 'error') ? '继续' : ''
                 }}</el-button>
             </div>
           </template>
@@ -46,17 +48,17 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import axios, { CancelTokenSource } from 'axios';
 import { deleteFile, findFile } from '../api/upload';
 import { calHash } from '../utils/hash';
 import IndexDB from '../utils/storage';
-import { FilePiece, type FilePieceArray, splitFile, uploadChunks } from '../utils/file';
+import { type FilePieceArray, splitFile, uploadChunks } from '../utils/file';
 import prettysize from 'prettysize';
 const CancelToken = axios.CancelToken; // 作废方法
 const fileArray = ref<Array<File> | null>(null); // 文件
 const fileChunksArray = ref<FilePieceArray[]>([]); // 文件切片
-const ws = ref<WebSocket>(); // 文件切片
+// const ws = ref<WebSocket>(); // WebSocket链接
 
 const file = ref<HTMLInputElement>(); // 文件上传
 // 加载数据
@@ -66,7 +68,7 @@ const loadData = async () => {
     fileChunksArray.value = data.content.map((item: any) => {
       return {
         ...item,
-        onTick: percentage => { // 更新进度
+        onTick: (percentage: number) => { // 更新进度
           if (item.percentage < percentage) {
             item.percentage = percentage;
           }
@@ -143,13 +145,15 @@ async function pretreatmentFile() {
 }
 
 // 文件上传
-async function uploadFile(row: FilePieceArray) {
+async function uploadFile(row: FilePieceArray, isAgain = false) {
   row.status = 'uploading';
   // 上传chuang
   await uploadChunks({
     pieces: row.pieces, // 文件切片数组
     hash: row.hash, // 文件hash
     cancelToken: row.cancelToken!, // 取消/暂停 上传
+    isAgain,
+    name: row.fileName,
     onTick: percentage => { // 更新进度
       if (row.percentage < percentage) {
         row.percentage = percentage;
@@ -165,32 +169,34 @@ async function uploadFile(row: FilePieceArray) {
     row.fileData = null;
   }).catch((e) => {
     console.log(e);
-    // if(e.message === '终止上传！') {
-    //   row.status = 'stop';
-    // } else {
-    //   row.status = 'error';
-    // }
+    if (e.message === '终止上传！') {
+      row.status = 'stop';
+    } else {
+      row.status = 'error';
+    }
   }).finally(() => {
     saveIndexDB();
   });
 }
+
+const upLoadeAll = () => {
+  fileChunksArray.value.forEach((item) => {
+    // 等待上传的文件 或者 上传失败的文件
+    if (item.status === 'waiting' || item.status === 'error') {
+      uploadFile(item);
+      // 暂停的文件
+    } else if (item.status === 'stop') {
+      handlePause(item);
+    }
+  });
+};
 
 // 暂停或继续上传
 async function handlePause(row: FilePieceArray) {
   row.status = row.status === 'uploading' ? 'stop' : 'uploading'; // 暂停/继续变更状态
   if (row.status === 'uploading') {
     // 继续上传chuang
-    await uploadChunks({
-      pieces: row.pieces.filter((e: FilePiece) => !e.isUploaded), // 文件切片数组
-      hash: row.hash, // 文件hash
-      // cancelToken: row.cancelToken, // 取消/暂停 上传
-      cancelToken: row.cancelToken!,
-      onTick: percentage => { // 更新进度
-        if (row.percentage < percentage) {
-          row.percentage = percentage;
-        }
-      },
-    });
+    uploadFile(row, true)
   } else if (row.status === 'stop') {
     // 暂停
     row.cancelToken!.cancel('终止上传！');
@@ -204,21 +210,25 @@ async function delFile(row: FilePieceArray) {
   const index = fileChunksArray.value.findIndex(item => item.hash === row.hash);
   // 删除文件
   if (fileChunksArray.value[index].status === 'success') {
-    await deleteFile({ hash: row.hash })
+    await deleteFile({ hash: row.hash, name: row.fileName || '' })
   }
   fileChunksArray.value.splice(index, 1);
   saveIndexDB();
 }
 
-onMounted(() => {
-  // 连接websocket
-  setTimeout(() => {
-    connectWebSocket();
-  }, 1000);
-})
+// onMounted(() => {
+//   // 连接websocket
+//   var time = setInterval(() => {
+//     connectWebSocket();
+//     // 连接成功后清除定时器
+//     if (WebSocketIsOpne.value) {
+//       clearInterval(time);
+//     }
+//   }, 1000);
+// })
 
 // 获取文件大小，格式化
-const fileSize = (file: File) => {
+const fileSize = (file: File): string => {
   return prettysize(file.size);
 };
 
@@ -229,37 +239,39 @@ const saveIndexDB = async () => {
       ...item,
       onTick: null,
       cancelToken: null,
-      pieces: item.pieces.filter((e) => !e.isUploaded).map((e: any) => {
+      pieces: item.pieces.map((e: any) => {
         return {
           chunk: e.chunk,
           size: e.size,
+          isUploaded: e.isUploaded,
         }
       })
     };
   }));
 };
 
-const WebSocketIsOpne = ref(false);
-// 连接websocket
-const connectWebSocket = () => {
-  if (WebSocketIsOpne.value) return;
-  ws.value = new WebSocket('ws://localhost:3000/websocket/001');
-  ws.value.onopen = () => {
-    console.log('连接成功');
-    WebSocketIsOpne.value = true;
-  };
-  ws.value.onmessage = (e) => {
-    console.log(e.data);
-  };
-  ws.value.onclose = () => {
-    console.log('连接关闭');
-    WebSocketIsOpne.value = false;
-  };
-  ws.value.onerror = () => {
-    console.log('连接失败');
-    WebSocketIsOpne.value = false;
-  };
-};
+// // websocket是否打开
+// const WebSocketIsOpne = ref(false);
+// // 连接websocket
+// const connectWebSocket = () => {
+//   if (WebSocketIsOpne.value) return;
+//   ws.value = new WebSocket('ws://localhost:3000/websocket/001');
+//   ws.value.onopen = () => {
+//     console.log('连接成功');
+//     WebSocketIsOpne.value = true;
+//   };
+//   ws.value.onmessage = (e) => {
+//     console.log(e.data);
+//   };
+//   ws.value.onclose = () => {
+//     console.log('连接关闭');
+//     WebSocketIsOpne.value = false;
+//   };
+//   ws.value.onerror = () => {
+//     console.log('连接失败');
+//     WebSocketIsOpne.value = false;
+//   };
+// };
 
 </script>
 
@@ -268,8 +280,8 @@ const connectWebSocket = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
+  width: 80vw;
+  height: auto;
   border: 1px #666 solid;
 }
 

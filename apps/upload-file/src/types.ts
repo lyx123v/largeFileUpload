@@ -7,23 +7,30 @@ export interface Response<T> {
 export interface FindFileControllerParams {
   // 文件 hash 值
   hash?: string;
-  // 分片索引
   index?: number;
 }
+
+export type FindFileControllerParamsResponse = Response<{
+  hashList: string[];
+}>;
+
 export interface DeleteFileControllerParams {
   // 文件 hash 值
   hash?: string;
+  name?: string;
 }
 export type FindFileControllerResponse = Response<{ exists: boolean }>;
 
 export interface MergeChunksControllerParams {
   // 文件 hash 值
   hash?: string;
+  name?: string;
 }
 
 export type MergeChunksControllerResponse = Response<{
   count: number;
   hash: string;
+  name: string;
 }>;
 
 export interface SaveChunkControllerParams {

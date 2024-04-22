@@ -29,7 +29,7 @@ self.onmessage = async e => {
   const { fileChunkList } = e.data as { fileChunkList: FilePiece[] };
   const spark = new SparkMD5.ArrayBuffer(); // 初始化SparkMD5用于计算hash
 
-  const len = fileChunkList.length;
+  const len = fileChunkList.length; // 文件分块的数量
   for (let i = 0; i < len; i++) {
     const chunk = fileChunkList[i].chunk; // 当前处理的文件分块
     const res = await readChunk(chunk); // 读取文件分块的内容
